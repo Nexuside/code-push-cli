@@ -1,6 +1,6 @@
 {
-  "name": "code-push-cli",
-  "version": "0.0.1",
+  "name": "@nexapush/code-push-cli",
+  "version": "0.0.13",
   "description": "Management CLI for the CodePush service",
   "main": "./script/cli.js",
   "scripts": {
@@ -11,24 +11,33 @@
     "lint:fix": "npx eslint ./script/**/*.ts --fix"
   },
   "bin": {
-    "code-push-standalone": "./bin/script/cli.js"
+    "nexapush": "./bin/script/cli.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/code-push-server"
+    "url": "https://github.com/nexapush/code-push-cli"
   },
   "author": "Microsoft",
+  "contributors": [
+    "Microsoft",
+    "Nexapush"
+  ],
   "dependencies": {
+    "@devicefarmer/adbkit-apkreader": "^3.2.4",
+    "aab-parser": "^1.0.1",
+    "adm-zip": "^0.5.16",
     "backslash": "^0.2.0",
+    "bplist-parser": "^0.3.2",
     "chalk": "^4.1.2",
     "cli-table": "^0.3.11",
+    "dotenv": "^17.2.1",
     "email-validator": "^2.0.4",
     "gradle-to-js": "2.0.1",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.29.4",
     "opener": "^1.5.2",
-    "parse-duration": "^1.1.0",
-    "plist": "^3.0.6",
+    "parse-duration": "1.1.0",
+    "plist": "^3.1.0",
     "progress": "^2.0.3",
     "prompt": "^1.3.0",
     "properties": "^1.2.1",
@@ -40,28 +49,31 @@
     "slash": "1.0.0",
     "superagent": "^8.0.9",
     "temp": "^0.9.4",
+    "unzipper": "^0.12.3",
     "which": "^1.2.7",
     "wordwrap": "1.0.0",
     "xcode": "^3.0.1",
-    "xml2js": "^0.6.0",
     "yargs": "^17.7.2",
     "yazl": "^2.5.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
-    "@types/jest": "^29.5.2",
-    "@types/mocha": "^10.0.1",
+    "@types/jest": "^29.5.14",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.3.1",
-    "@types/q": "^1.5.5",
+    "@types/q": "^1.5.8",
     "@types/sinon": "^10.0.15",
+    "@types/unzipper": "^0.10.11",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.45.0",
     "express": "^4.19.2",
     "mkdirp": "^3.0.1",
+    "mocha": "^11.1.0",
     "prettier": "^2.8.8",
     "sinon": "15.1.2",
     "superagent-mock": "^4.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.1.3",
     "which": "^3.0.1"
   }

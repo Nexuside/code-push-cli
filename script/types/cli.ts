@@ -36,6 +36,8 @@ export enum CommandType {
   sessionList,
   sessionRemove,
   whoami,
+  releaseExpo,
+  releaseNative,
 }
 
 export interface ICommand {
@@ -132,6 +134,7 @@ export interface IDeploymentListCommand extends ICommand {
 export interface IDeploymentRemoveCommand extends ICommand {
   appName: string;
   deploymentName: string;
+  isForce?: boolean;
 }
 
 export interface IDeploymentRenameCommand extends ICommand {
@@ -145,7 +148,8 @@ export interface ILinkCommand extends ICommand {
 }
 
 export interface ILoginCommand extends ICommand {
-  serverUrl?: string;
+  apiServerUrl?: string;
+  appServerUrl?: string;
   accessKey: string;
 }
 
@@ -155,11 +159,13 @@ export interface IPackageInfo {
   disabled?: boolean;
   mandatory?: boolean;
   rollout?: number;
+  initial?: boolean;
 }
 
 export interface IPatchCommand extends ICommand, IPackageInfo {
   appName: string;
   appStoreVersion?: string;
+  buildNumber?: string | null;
   deploymentName: string;
   label: string;
 }
@@ -179,6 +185,7 @@ export interface IRegisterCommand extends ICommand {
 export interface IReleaseBaseCommand extends ICommand, IPackageInfo {
   appName: string;
   appStoreVersion: string;
+  buildNumber?: string;
   deploymentName: string;
   noDuplicateReleaseError?: boolean;
   privateKeyPath?: string;
@@ -189,6 +196,7 @@ export interface IReleaseCommand extends IReleaseBaseCommand {
 }
 
 export interface IReleaseReactCommand extends IReleaseBaseCommand {
+  package?: string;
   bundleName?: string;
   development?: boolean;
   entryFile?: string;
@@ -205,6 +213,15 @@ export interface IReleaseReactCommand extends IReleaseBaseCommand {
   xcodeProjectFile?: string;
   xcodeTargetName?: string;
   buildConfigurationName?: string;
+  extraBundlerOptions?: string[];
+}
+
+export interface IReleaseNativeCommand extends IReleaseBaseCommand {
+  platform: string;
+  targetBinary: string;
+  targetBinaryVersion?: string;
+  outputDir?: string;
+  bundleName?: string;
 }
 
 export interface IRollbackCommand extends ICommand {

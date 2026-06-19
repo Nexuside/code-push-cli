@@ -46,12 +46,20 @@ export interface DownloadReport {
 /*inout*/
 export interface PackageInfo {
   appVersion?: string;
+  buildNumber?: string | null;
   description?: string;
   isDisabled?: boolean;
   isMandatory?: boolean;
+  isInitial?: boolean;
   /*generated*/ label?: string;
   /*generated*/ packageHash?: string;
   rollout?: number;
+}
+
+/*inout*/
+export interface ReactNativePackageInfo extends PackageInfo {
+  bundleName?: string;
+  outputDir?: string;
 }
 
 /*out*/
@@ -124,6 +132,11 @@ export interface Deployment {
   /*generated key*/ key?: string;
   /*key*/ name: string;
   /*generated*/ package?: Package;
+}
+
+/*inout*/
+export interface BaseRelease {
+  bundleBlobUrl?: string;
 }
 
 /*out*/

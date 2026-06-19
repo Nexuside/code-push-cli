@@ -9,7 +9,7 @@ import parseDuration = require("parse-duration");
 
 const packageJson = require("../../package.json");
 const ROLLOUT_PERCENTAGE_REGEX: RegExp = /^(100|[1-9][0-9]|[1-9])%?$/;
-const USAGE_PREFIX = "Usage: code-push-standalone";
+const USAGE_PREFIX = "Usage: nexapush";
 
 // Command categories are:  access-key, app, release, deployment, deployment-key, login, logout, register
 let isValidCommandCategory = false;
@@ -20,13 +20,19 @@ let wasHelpShown = false;
 export function showHelp(showRootDescription?: boolean): void {
   if (!wasHelpShown) {
     if (showRootDescription) {
-      console.log(chalk.cyan("  _____        __  " + chalk.green("  ___           __ ")));
-      console.log(chalk.cyan(" / ___/__  ___/ /__" + chalk.green(" / _ \\__ _____ / / ")));
-      console.log(chalk.cyan("/ /__/ _ \\/ _  / -_)" + chalk.green(" ___/ // (_-</ _ \\")));
-      console.log(chalk.cyan("\\___/\\___/\\_,_/\\__/" + chalk.green("_/   \\_,_/___/_//_/")) + "    CLI v" + packageJson.version);
-      console.log(chalk.cyan("======================================"));
-      console.log("");
-      console.log("CodePush is a service that enables you to deploy mobile app updates directly to your users' devices.\n");
+      console.log(
+        chalk.blue(`
+ ____                 ____            _     
+|  _ \\ _____   _____ |  _ \\ _   _ ___| |__  
+| |_) / _ \\ \\ / / _ \\| |_) | | | / __| '_ \\ 
+|  _ <  __/\\ V / (_) |  __/| |_| \\__ \\ | | |
+|_| \\_\\___| \\_/ \\___/|_|    \\__,_|___/_| |_| CLI v${packageJson.version}
+============================================`)
+      );
+      console.log(
+        "Nexapush is a service that enables you to deploy mobile app updates directly to your users' devices. " +
+          "Visit our website https://nexapush.org/ \n"
+      );
     }
 
     yargs.showHelp();
@@ -241,7 +247,13 @@ function deploymentRemove(commandName: string, yargs: yargs.Argv): void {
   yargs
     .usage(USAGE_PREFIX + " deployment " + commandName + " <appName> <deploymentName>")
     .demand(/*count*/ 2, /*max*/ 2) // Require exactly two non-option arguments
-    .example("deployment " + commandName + " MyApp MyDeployment", 'Removes deployment "MyDeployment" from app "MyApp"');
+    .example("deployment " + commandName + " MyApp MyDeployment", 'Removes deployment "MyDeployment" from app "MyApp"')
+    .option("force", {
+      default: false,
+      demand: false,
+      description: "Bypass confirmation when removing deployments",
+      type: "boolean",
+    });
 
   addCommonConfiguration(yargs);
 }
@@ -413,23 +425,23 @@ yargs
 
     addCommonConfiguration(yargs);
   })
-  .command("link", "Link an additional authentication provider (e.g. GitHub) to an existing CodePush account", (yargs: yargs.Argv) => {
-    isValidCommandCategory = true;
-    isValidCommand = true;
-    yargs
-      .usage(USAGE_PREFIX + " link")
-      .demand(/*count*/ 0, /*max*/ 1) //set 'max' to one to allow usage of serverUrl undocument parameter for testing
-      .example("link", "Links an account on the CodePush server")
-      .check((argv: any, aliases: { [aliases: string]: string }): any => isValidCommand); // Report unrecognized, non-hyphenated command category.
+  /*  .command("link", "Link an additional authentication provider (e.g. GitHub) to an existing CodePush account", (yargs: yargs.Argv) => {
+        isValidCommandCategory = true;
+        isValidCommand = true;
+        yargs
+          .usage(USAGE_PREFIX + " link")
+          .demand(/!*count*!/ 0, /!*max*!/ 1) //set 'max' to one to allow usage of serverUrl undocument parameter for testing
+          .example("link", "Links an account on the CodePush server")
+          .check((argv: any, aliases: { [aliases: string]: string }): any => isValidCommand); // Report unrecognized, non-hyphenated command category.
 
-    addCommonConfiguration(yargs);
-  })
+        addCommonConfiguration(yargs);
+      })*/
   .command("login", "Authenticate with the CodePush server in order to begin managing your apps", (yargs: yargs.Argv) => {
     isValidCommandCategory = true;
     isValidCommand = true;
     yargs
       .usage(USAGE_PREFIX + " login [options]")
-      .demand(/*count*/ 0, /*max*/ 1) //set 'max' to one to allow usage of serverUrl undocument parameter for testing
+      .demand(/*count*/ 0, /*max*/ 2) //set 'max' to one to allow usage of serverUrl undocument parameter for testing
       .example("login", "Logs in to the CodePush server")
       .example("login --accessKey mykey", 'Logs in on behalf of the user who owns and created the access key "mykey"')
       .option("accessKey", {
@@ -506,6 +518,14 @@ yargs
         default: null,
         demand: false,
         description: "Semver expression that specifies the binary app version(s) this release is targeting (e.g. 1.1.0, ~1.2.3).",
+        type: "string",
+      })
+      .option("buildNumber", {
+        alias: "bn",
+        default: undefined,
+        demand: false,
+        description:
+          'Retarget this release to a specific native build (e.g. "100"). Pass an empty string ("") to reset to wildcard (all builds).',
         type: "string",
       })
       .check((argv: any, aliases: { [aliases: string]: string }): any => {
@@ -654,6 +674,14 @@ yargs
         description: "Percentage of users this release should be available to",
         type: "string",
       })
+      .option("buildNumber", {
+        alias: "bn",
+        default: null,
+        demand: false,
+        description:
+          "Target clients on a specific native build (CFBundleVersion on iOS, versionCode on Android). Requires an exact appVersion (e.g. 1.2.3, not a range) and an existing native release with that build number. If omitted, targets all clients on the specified appVersion.",
+        type: "string",
+      })
       .check((argv: any, aliases: { [aliases: string]: string }): any => {
         return checkValidReleaseOptions(argv);
       });
@@ -726,6 +754,13 @@ yargs
         demand: false,
         description: "Path to the gradle file which specifies the binary version you want to target this release at (android only).",
       })
+      .option("initial", {
+        alias: "i",
+        default: false,
+        demand: false,
+        description: "Specifies whether release is initial (base) for given targetBinaryVersion.",
+        type: "boolean",
+      })
       .option("mandatory", {
         alias: "m",
         default: false,
@@ -794,15 +829,14 @@ yargs
         alias: "pod",
         default: null,
         demand: false,
-        description:  "Path to the cocopods config file (iOS only).",
+        description: "Path to the cocopods config file (iOS only).",
         type: "string",
       })
       .option("extraHermesFlags", {
         alias: "hf",
         default: [],
         demand: false,
-        description:
-          "Flags that get passed to Hermes, JavaScript to bytecode compiler. Can be specified multiple times.",
+        description: "Flags that get passed to Hermes, JavaScript to bytecode compiler. Can be specified multiple times.",
         type: "array",
       })
       .option("privateKeyPath", {
@@ -823,14 +857,271 @@ yargs
         alias: "xt",
         default: undefined,
         demand: false,
-        description: "Name of target (PBXNativeTarget) which specifies the binary version you want to target this release at (iOS only)",
+        description:
+          "Name of target (PBXNativeTarget) which specifies the binary version you want to target this release at (iOS only)",
         type: "string",
       })
       .option("buildConfigurationName", {
         alias: "c",
         default: undefined,
         demand: false,
-        description: "Name of build configuration which specifies the binary version you want to target this release at. For example, 'Debug' or 'Release' (iOS only)",
+        description:
+          "Name of build configuration which specifies the binary version you want to target this release at. For example, 'Debug' or 'Release' (iOS only)",
+        type: "string",
+      })
+      .option("extraBundlerOption", {
+        alias: "eo",
+        default: [],
+        demand: false,
+        description: "Option that gets passed to react-native bundler. Can be specified multiple times.",
+        type: "array",
+      })
+      .option("buildNumber", {
+        alias: "bn",
+        default: null,
+        demand: false,
+        description:
+          "Target clients on a specific native build (CFBundleVersion on iOS, versionCode on Android). Requires an exact appVersion (e.g. 1.2.3, not a range) and an existing native release with that build number. If omitted, targets all clients on the specified appVersion.",
+        type: "string",
+      })
+      .check((argv: any, aliases: { [aliases: string]: string }): any => {
+        return checkValidReleaseOptions(argv);
+      });
+
+    addCommonConfiguration(yargs);
+  })
+  .command("release-expo", "Release an Expo / React Native update to an app deployment", (yargs: yargs.Argv) => {
+    isValidCommand = true;
+
+    yargs
+      .usage(USAGE_PREFIX + " release-expo <appName> <platform> [options]")
+      .demand(/*count*/ 2, /*max*/ 2) // Require exactly two non-option arguments
+      .example(
+        "release-expo MyApp ios",
+        'Releases the Expo-managed iOS project in the current working directory to the "MyApp" app\'s "Staging" deployment'
+      )
+      .example(
+        "release-expo MyApp android -d Production",
+        'Releases the Expo-managed Android project in the current working directory to the "MyApp" app\'s "Production" deployment'
+      )
+      .option("bundleName", {
+        alias: "b",
+        default: null,
+        demand: false,
+        description:
+          'Name of the generated JS bundle file. If unspecified, the standard bundle name will be used, depending on the specified platform: "main.jsbundle" (iOS), "index.android.bundle" (Android) or "index.windows.bundle" (Windows)',
+        type: "string",
+      })
+      .option("deploymentName", {
+        alias: "d",
+        default: "Staging",
+        demand: false,
+        description: "Deployment to release the update to",
+        type: "string",
+      })
+      .option("description", {
+        alias: "des",
+        default: null,
+        demand: false,
+        description: "Description of the changes made to the app with this release",
+        type: "string",
+      })
+      .option("development", {
+        alias: "dev",
+        default: false,
+        demand: false,
+        description: "Specifies whether to generate a dev or release build",
+        type: "boolean",
+      })
+      .option("disabled", {
+        alias: "x",
+        default: false,
+        demand: false,
+        description: "Specifies whether this release should be immediately downloadable",
+        type: "boolean",
+      })
+      .option("entryFile", {
+        alias: "e",
+        default: null,
+        demand: false,
+        description:
+          'Path to the app\'s entry Javascript file. If omitted, "index.<platform>.js" and then "index.js" will be used (if they exist)',
+        type: "string",
+      })
+      .option("gradleFile", {
+        alias: "g",
+        default: null,
+        demand: false,
+        description: "Path to the gradle file which specifies the binary version you want to target this release at (android only).",
+      })
+      .option("initial", {
+        alias: "i",
+        default: false,
+        demand: false,
+        description: "Specifies whether release is initial (base) for given targetBinaryVersion.",
+        type: "boolean",
+      })
+      .option("mandatory", {
+        alias: "m",
+        default: false,
+        demand: false,
+        description: "Specifies whether this release should be considered mandatory",
+        type: "boolean",
+      })
+      .option("noDuplicateReleaseError", {
+        default: false,
+        demand: false,
+        description:
+          "When this flag is set, releasing a package that is identical to the latest release will produce a warning instead of an error",
+        type: "boolean",
+      })
+      .option("plistFile", {
+        alias: "p",
+        default: null,
+        demand: false,
+        description: "Path to the plist file which specifies the binary version you want to target this release at (iOS only).",
+      })
+      .option("plistFilePrefix", {
+        alias: "pre",
+        default: null,
+        demand: false,
+        description: "Prefix to append to the file name when attempting to find your app's Info.plist file (iOS only).",
+      })
+      .option("rollout", {
+        alias: "r",
+        default: "100%",
+        demand: false,
+        description: "Percentage of users this release should be immediately available to",
+        type: "string",
+      })
+      .option("sourcemapOutput", {
+        alias: "s",
+        default: null,
+        demand: false,
+        description:
+          "Path to where the sourcemap for the resulting bundle should be written. If omitted, a sourcemap will not be generated.",
+        type: "string",
+      })
+      .option("targetBinaryVersion", {
+        alias: "t",
+        default: null,
+        demand: false,
+        description:
+          'Semver expression that specifies the binary app version(s) this release is targeting (e.g. 1.1.0, ~1.2.3). If omitted, the release will target the exact version specified in the "Info.plist" (iOS), "build.gradle" (Android) or "Package.appxmanifest" (Windows) files.',
+        type: "string",
+      })
+      .option("outputDir", {
+        alias: "o",
+        default: null,
+        demand: false,
+        description:
+          "Path to where the bundle and sourcemap should be written. If omitted, a bundle and sourcemap will not be written.",
+        type: "string",
+      })
+      .option("useHermes", {
+        alias: "h",
+        default: false,
+        demand: false,
+        description: "Enable hermes and bypass automatic checks",
+        type: "boolean",
+      })
+      .option("podFile", {
+        alias: "pod",
+        default: null,
+        demand: false,
+        description: "Path to the cocopods config file (iOS only).",
+        type: "string",
+      })
+      .option("extraHermesFlags", {
+        alias: "hf",
+        default: [],
+        demand: false,
+        description: "Flags that get passed to Hermes, JavaScript to bytecode compiler. Can be specified multiple times.",
+        type: "array",
+      })
+      .option("privateKeyPath", {
+        alias: "k",
+        default: null,
+        demand: false,
+        description: "Path to private key used for code signing.",
+        type: "string",
+      })
+      .option("xcodeProjectFile", {
+        alias: "xp",
+        default: null,
+        demand: false,
+        description: "Path to the Xcode project or project.pbxproj file",
+        type: "string",
+      })
+      .option("xcodeTargetName", {
+        alias: "xt",
+        default: undefined,
+        demand: false,
+        description:
+          "Name of target (PBXNativeTarget) which specifies the binary version you want to target this release at (iOS only)",
+        type: "string",
+      })
+      .option("buildConfigurationName", {
+        alias: "c",
+        default: undefined,
+        demand: false,
+        description:
+          "Name of build configuration which specifies the binary version you want to target this release at. For example, 'Debug' or 'Release' (iOS only)",
+        type: "string",
+      })
+      .option("extraBundlerOption", {
+        alias: "eo",
+        default: [],
+        demand: false,
+        description: "Option that gets passed to react-native bundler. Can be specified multiple times.",
+        type: "array",
+      })
+      .option("buildNumber", {
+        alias: "bn",
+        default: null,
+        demand: false,
+        description:
+          "Target clients on a specific native build (CFBundleVersion on iOS, versionCode on Android). Requires an exact appVersion (e.g. 1.2.3, not a range) and an existing native release with that build number. If omitted, targets all clients on the specified appVersion.",
+        type: "string",
+      })
+      .check((argv: any) => {
+        return checkValidReleaseOptions(argv);
+      });
+
+    addCommonConfiguration(yargs);
+  })
+  .command("release-native", "Release a binary update to an app deployment", (yargs: yargs.Argv) => {
+    yargs
+      .usage(USAGE_PREFIX + " release-native <appName> <platform> <targetBinary> [options]")
+      .demand(/*count*/ 3, /*max*/ 3) // Require exactly three non-option arguments
+      .example(
+        "release-native MyApp ios ./app.ipa",
+        'Releases the React Native iOS project from "./app.ipa" to the "MyApp" app\'s "Staging" deployment'
+      )
+      .example(
+        "release-native MyApp android ./app.apk -d Production",
+        'Releases the React Native Android project from "./app.apk" to the "MyApp" app\'s "Production" deployment'
+      )
+      .option("deploymentName", {
+        alias: "d",
+        default: "Staging",
+        demand: false,
+        description: "Deployment to release the update to",
+        type: "string",
+      })
+      .option("targetBinaryVersion", {
+        alias: "t",
+        default: null,
+        demand: false,
+        description: "Semver expression that specifies the binary app version(s) this release is targeting (e.g. 1.1.0, ~1.2.3).",
+        type: "string",
+      })
+      .option("buildNumber", {
+        alias: "bn",
+        default: null,
+        demand: false,
+        description:
+          "Targets this release to clients running a specific native binary build — CFBundleVersion on iOS or versionCode on Android. If omitted, auto-detected from the target binary (IPA/APK/AAB). Override when the value is set dynamically (e.g. on CI).",
         type: "string",
       })
       .check((argv: any, aliases: { [aliases: string]: string }): any => {
@@ -1053,10 +1344,9 @@ export function createCommand(): cli.ICommand {
 
               deploymentAddCommand.appName = arg2;
               deploymentAddCommand.deploymentName = arg3;
-              if(argv["key"]){
+              if (argv["key"]) {
                 deploymentAddCommand.key = argv["key"] as any;
               }
-
             }
             break;
 
@@ -1093,6 +1383,7 @@ export function createCommand(): cli.ICommand {
 
               deploymentRemoveCommand.appName = arg2;
               deploymentRemoveCommand.deploymentName = arg3;
+              deploymentRemoveCommand.isForce = argv["force"] as any;
             }
             break;
 
@@ -1124,19 +1415,20 @@ export function createCommand(): cli.ICommand {
         }
         break;
 
-      case "link":
-        cmd = <cli.ILinkCommand>{
-          type: cli.CommandType.link,
-          serverUrl: getServerUrl(arg1),
-        };
-        break;
+      /*      case "link":
+                    cmd = <cli.ILinkCommand>{
+                      type: cli.CommandType.link,
+                      serverUrl: getServerUrl(arg1),
+                    };
+                    break;*/
 
       case "login":
         cmd = { type: cli.CommandType.login };
 
         const loginCommand = <cli.ILoginCommand>cmd;
 
-        loginCommand.serverUrl = getServerUrl(arg1);
+        loginCommand.apiServerUrl = getServerUrl(arg1);
+        loginCommand.appServerUrl = getServerUrl(arg2);
         loginCommand.accessKey = argv["accessKey"] as any;
         break;
 
@@ -1159,6 +1451,8 @@ export function createCommand(): cli.ICommand {
           patchCommand.mandatory = argv["mandatory"] as any;
           patchCommand.rollout = getRolloutValue(argv["rollout"] as any);
           patchCommand.appStoreVersion = argv["targetBinaryVersion"] as any;
+          // undefined = not provided (skip); null = reset to wildcard (empty string ""); string = retarget to that build.
+          patchCommand.buildNumber = argv["buildNumber"] !== undefined ? (argv["buildNumber"] as string) || null : undefined;
         }
         break;
 
@@ -1198,6 +1492,7 @@ export function createCommand(): cli.ICommand {
           releaseCommand.appName = arg1;
           releaseCommand.package = arg2;
           releaseCommand.appStoreVersion = arg3;
+          releaseCommand.buildNumber = argv["buildNumber"] as any;
           releaseCommand.deploymentName = argv["deploymentName"] as any;
           releaseCommand.description = argv["description"] ? backslash(argv["description"]) : "";
           releaseCommand.disabled = argv["disabled"] as any;
@@ -1217,6 +1512,7 @@ export function createCommand(): cli.ICommand {
           releaseReactCommand.platform = arg2;
 
           releaseReactCommand.appStoreVersion = argv["targetBinaryVersion"] as any;
+          releaseReactCommand.buildNumber = argv["buildNumber"] as any;
           releaseReactCommand.bundleName = argv["bundleName"] as any;
           releaseReactCommand.deploymentName = argv["deploymentName"] as any;
           releaseReactCommand.disabled = argv["disabled"] as any;
@@ -1225,6 +1521,7 @@ export function createCommand(): cli.ICommand {
           releaseReactCommand.entryFile = argv["entryFile"] as any;
           releaseReactCommand.gradleFile = argv["gradleFile"] as any;
           releaseReactCommand.mandatory = argv["mandatory"] as any;
+          releaseReactCommand.initial = argv["initial"] as any;
           releaseReactCommand.noDuplicateReleaseError = argv["noDuplicateReleaseError"] as any;
           releaseReactCommand.plistFile = argv["plistFile"] as any;
           releaseReactCommand.plistFilePrefix = argv["plistFilePrefix"] as any;
@@ -1238,6 +1535,64 @@ export function createCommand(): cli.ICommand {
           releaseReactCommand.xcodeProjectFile = argv["xcodeProjectFile"] as any;
           releaseReactCommand.xcodeTargetName = argv["xcodeTargetName"] as any;
           releaseReactCommand.buildConfigurationName = argv["buildConfigurationName"] as any;
+          releaseReactCommand.extraBundlerOptions = argv["extraBundlerOption"] as any;
+        }
+        break;
+
+      case "release-expo":
+        if (arg1 && arg2) {
+          cmd = { type: cli.CommandType.releaseExpo };
+
+          const releaseExpoCommand = <cli.IReleaseReactCommand>cmd;
+
+          releaseExpoCommand.appName = arg1;
+          releaseExpoCommand.platform = arg2;
+
+          releaseExpoCommand.appStoreVersion = argv["targetBinaryVersion"] as any;
+          releaseExpoCommand.buildNumber = argv["buildNumber"] as any;
+          releaseExpoCommand.bundleName = argv["bundleName"] as any;
+          releaseExpoCommand.deploymentName = argv["deploymentName"] as any;
+          releaseExpoCommand.disabled = argv["disabled"] as any;
+          releaseExpoCommand.description = argv["description"] ? backslash(argv["description"]) : "";
+          releaseExpoCommand.development = argv["development"] as any;
+          releaseExpoCommand.entryFile = argv["entryFile"] as any;
+          releaseExpoCommand.gradleFile = argv["gradleFile"] as any;
+          releaseExpoCommand.mandatory = argv["mandatory"] as any;
+          releaseExpoCommand.initial = argv["initial"] as any;
+          releaseExpoCommand.noDuplicateReleaseError = argv["noDuplicateReleaseError"] as any;
+          releaseExpoCommand.plistFile = argv["plistFile"] as any;
+          releaseExpoCommand.plistFilePrefix = argv["plistFilePrefix"] as any;
+          releaseExpoCommand.rollout = getRolloutValue(argv["rollout"] as any);
+          releaseExpoCommand.sourcemapOutput = argv["sourcemapOutput"] as any;
+          releaseExpoCommand.outputDir = argv["outputDir"] as any;
+          releaseExpoCommand.useHermes = argv["useHermes"] as any;
+          releaseExpoCommand.extraHermesFlags = argv["extraHermesFlags"] as any;
+          releaseExpoCommand.podFile = argv["podFile"] as any;
+          releaseExpoCommand.privateKeyPath = argv["privateKeyPath"] as any;
+          releaseExpoCommand.xcodeProjectFile = argv["xcodeProjectFile"] as any;
+          releaseExpoCommand.xcodeTargetName = argv["xcodeTargetName"] as any;
+          releaseExpoCommand.buildConfigurationName = argv["buildConfigurationName"] as any;
+          releaseExpoCommand.extraBundlerOptions = argv["extraBundlerOption"] as any;
+        }
+        break;
+
+      case "release-native":
+        if (arg1 && arg2 && arg3) {
+          cmd = { type: cli.CommandType.releaseNative };
+
+          const releaseBinaryCommand = <cli.IReleaseNativeCommand>cmd;
+
+          releaseBinaryCommand.appName = arg1;
+          releaseBinaryCommand.platform = arg2;
+          releaseBinaryCommand.targetBinary = arg3;
+          releaseBinaryCommand.deploymentName = argv["deploymentName"] as any;
+          releaseBinaryCommand.appStoreVersion = argv["targetBinaryVersion"] as any;
+          releaseBinaryCommand.buildNumber = argv["buildNumber"] as any;
+          releaseBinaryCommand.initial = true;
+          releaseBinaryCommand.disabled = true;
+          releaseBinaryCommand.mandatory = false;
+          // TODO add support for releaseBinaryCommand.bundleName
+          // TODO add support for releaseBinaryCommand.outputDir
         }
         break;
 
