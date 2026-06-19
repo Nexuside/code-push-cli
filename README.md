@@ -128,11 +128,11 @@ which will display the version of the Nexapush CLI you have installed with avail
 
 ```shell
 nexapush -h
- ____                 ____            _     
-|  _ \ _____   _____ |  _ \ _   _ ___| |__  
-| |_) / _ \ \ / / _ \| |_) | | | / __| '_ \ 
-|  _ <  __/\ V / (_) |  __/| |_| \__ \ | | |
-|_| \_\___| \_/ \___/|_|    \__,_|___/_| |_| CLI v0.0.1
+ _   _                 ____            _     
+| \ | | _____  ____ _ |  _ \ _   _ ___| |__  
+|  \| |/ _ \ \/ / _` || |_) | | | / __| '_ \
+| |\  |  __/>  < (_| ||  __/| |_| \__ \ | | |
+|_| \_|\___/_/\_\__,_||_|    \__,_|___/_| |_| NexaPush CLI v0.0.1
 ============================================
 Nexapush is a service that enables you to deploy mobile app updates directly to your users devices. Visit our website https://nexapush.org/ 
 
